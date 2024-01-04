@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:realtime_object_detection/models/recognition.dart';
 import 'package:realtime_object_detection/utils/image_utils.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'package:image/image.dart' as image_lib;
@@ -24,7 +26,9 @@ class RootIsolate {
   static late List<String> labels;
   static bool isReady = false;
 
-  static void start() async {
+  static StreamController resultStream = StreamController();
+
+  static Future<void> start() async {
     ReceivePort receivePort = ReceivePort();
     RootIsolateToken rootIsolateToken = RootIsolateToken.instance!;
     await loadModelAndLabels();
@@ -52,7 +56,7 @@ class RootIsolate {
         isReady = false;
       case Codes.result:
         isReady = true;
-        print(command.args![0]);
+        resultStream.add(command.args![0]);
 
       default:
         debugPrint('Unrecognized code for RootIsolate: ${command.code}');
@@ -73,6 +77,8 @@ class BackgroundIsolate {
   static late SendPort sendPort;
 
   static int mlModelInputSize = 300;
+
+  static const double confidence = 0.5;
 
   static void start(List args) {
     sendPort = args[0];
@@ -102,6 +108,9 @@ class BackgroundIsolate {
   static void getResult(CameraImage cameraImage) {
     convertCameraImageToImage(cameraImage).then((image) {
       if (image != null) {
+        print('#@#@#@#@#@#@#@#');
+        print(cameraImage.width);
+        print(cameraImage.height);
         if (Platform.isAndroid) {
           image = image_lib.copyRotate(image, angle: 90);
         }
@@ -112,7 +121,7 @@ class BackgroundIsolate {
     });
   }
 
-  static List analyseImage(image_lib.Image image) {
+  static List<Recognition> analyseImage(image_lib.Image image) {
     /// Pre-process the image
     /// Resizing image for model [300, 300]
     final imageInput = image_lib.copyResize(
@@ -159,7 +168,16 @@ class BackgroundIsolate {
       classification.add(labels[classes[i]]);
     }
 
-    return output;
+    // results with confidence
+    List<Recognition> recognitions = <Recognition>[];
+    for (int i = 0; i < numberOfDetections; i++) {
+      if (scores[i] > confidence) {
+        recognitions
+            .add(Recognition(classification[i], scores[i], locations[i]));
+      }
+    }
+
+    return recognitions;
   }
 
   /// Object detection main function
