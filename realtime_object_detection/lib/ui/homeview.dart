@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:gallery_saver/gallery_saver.dart';
 import 'package:realtime_object_detection/models/recognition.dart';
 import 'package:realtime_object_detection/service/detection.dart';
 import 'package:realtime_object_detection/ui/box_widget.dart';
@@ -63,10 +64,24 @@ class _HomeViewState extends State<HomeView> {
         ),
       ));
     } else {
-      print('##################################');
-      print(controller!.value.previewSize);
-      print(MediaQuery.sizeOf(context));
-      return Stack(children: [CameraPreview(controller!)]);
+      //print('##################################');
+      //print(controller!.value.previewSize);
+      //print(controller!.value.aspectRatio);
+      //print(controller!.value.previewSize!.width);
+      //print(MediaQuery.sizeOf(context));
+      return Column(
+        children: [
+          Stack(children: [CameraPreview(controller!)]),
+          IconButton(
+            onPressed: () async {
+              final imagetook = await controller!.takePicture();
+              await GallerySaver.saveImage(imagetook.path);
+            },
+            icon: const Icon(Icons.camera),
+            iconSize: 50,
+          ),
+        ],
+      );
     }
   }
 
