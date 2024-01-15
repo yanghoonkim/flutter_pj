@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -75,7 +74,9 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
                   onPressed: () async {
                     var imageXfile =
                         await picker.pickImage(source: ImageSource.gallery);
-                    _image = await objectDetection!.detect(imageXfile!.path);
+                    if (imageXfile != null) {
+                      _image = await objectDetection!.detect(imageXfile.path);
+                    }
 
                     setState(() {});
                   },
@@ -86,7 +87,9 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
                   onPressed: () async {
                     var imageXfile =
                         await picker.pickImage(source: ImageSource.camera);
-                    _image = await objectDetection!.detect(imageXfile!.path);
+                    if (imageXfile != null) {
+                      _image = await objectDetection!.detect(imageXfile.path);
+                    }
 
                     setState(() {});
                   },
