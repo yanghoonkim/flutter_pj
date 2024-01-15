@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:gallery_saver/gallery_saver.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:realtime_object_detection/models/recognition.dart';
 import 'package:realtime_object_detection/service/detection.dart';
 import 'package:realtime_object_detection/ui/box_widget.dart';
+import 'package:image/image.dart' as image_lib;
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -20,7 +23,7 @@ class _HomeViewState extends State<HomeView> {
 
   StreamSubscription? subscription;
 
-  List<Recognition>? results;
+  List? results;
 
   @override
   void initState() {
@@ -29,6 +32,11 @@ class _HomeViewState extends State<HomeView> {
     RootIsolate.start().then((_) {
       subscription = RootIsolate.resultStream.stream.listen((values) {
         results = values;
+        //print(results![1]);
+        //print(results!.length);
+        //if (results!.isNotEmpty) {
+        //  print(results![0].label);
+        //}
         setState(() {});
       });
     });
@@ -39,7 +47,7 @@ class _HomeViewState extends State<HomeView> {
     controller = CameraController(cameras[0], ResolutionPreset.medium,
         enableAudio: false)
       ..initialize().then((_) async {
-        //await controller!.startImageStream(onLatestImageAvailable);
+        await controller!.startImageStream(onLatestImageAvailable);
         setState(() {});
       });
   }
@@ -64,18 +72,26 @@ class _HomeViewState extends State<HomeView> {
         ),
       ));
     } else {
-      //print('##################################');
-      //print(controller!.value.previewSize);
-      //print(controller!.value.aspectRatio);
-      //print(controller!.value.previewSize!.width);
-      //print(MediaQuery.sizeOf(context));
       return Column(
         children: [
           Stack(children: [CameraPreview(controller!)]),
           IconButton(
             onPressed: () async {
-              final imagetook = await controller!.takePicture();
-              await GallerySaver.saveImage(imagetook.path);
+              Directory appDocDir = await getApplicationDocumentsDirectory();
+              //final imagetook = await controller!.takePicture();
+              final imagetook = results![1];
+              // Create a temporary file
+              String tempFilePath =
+                  '${appDocDir.path}/${DateTime.now().millisecondsSinceEpoch}.png';
+              File tempFile = File(tempFilePath);
+
+              // Write the image to the temporary file
+              tempFile.writeAsBytesSync(image_lib.encodePng(imagetook));
+
+              // Return XFile from the temporary file path
+              final imagetook_ = XFile(tempFile.path);
+
+              await GallerySaver.saveImage(imagetook_.path);
             },
             icon: const Icon(Icons.camera),
             iconSize: 50,
