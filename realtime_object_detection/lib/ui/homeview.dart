@@ -19,7 +19,7 @@ class HomeView extends StatefulWidget {
   State<HomeView> createState() => _HomeViewState();
 }
 
-class _HomeViewState extends State<HomeView> {
+class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   late List<CameraDescription> cameras;
   CameraController? controller;
 
@@ -30,6 +30,7 @@ class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     initCamera();
     RootIsolate.start().then((_) {
       subscription = RootIsolate.resultStream.stream.listen((values) {
@@ -55,8 +56,42 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   void dispose() {
+    print('run dispose');
     controller?.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    RootIsolate.stopBackgroudIsolate();
+    subscription!.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.inactive:
+        print('inactive');
+        if (controller!.value.isStreamingImages) {
+          controller?.stopImageStream();
+        }
+        //controller?.dispose();
+        RootIsolate.stopBackgroudIsolate();
+        subscription!.cancel();
+        break;
+      case AppLifecycleState.resumed:
+        print('resumed');
+        initCamera();
+        RootIsolate.start().then((_) {
+          RootIsolate.resultStream = StreamController();
+          subscription = RootIsolate.resultStream.stream.listen((values) {
+            results = values;
+            //if (results!.isNotEmpty) {
+            //  print(results![0].label);
+            //}
+            setState(() {});
+          });
+        });
+        break;
+      default:
+    }
   }
 
   @override

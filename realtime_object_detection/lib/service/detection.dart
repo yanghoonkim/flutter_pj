@@ -26,6 +26,7 @@ class RootIsolate {
   static late tfl.Interpreter interpreter;
   static late List<String> labels;
   static bool isReady = false;
+  static late Isolate backgroundIsolate;
 
   static StreamController resultStream = StreamController();
 
@@ -33,7 +34,7 @@ class RootIsolate {
     ReceivePort receivePort = ReceivePort();
     RootIsolateToken rootIsolateToken = RootIsolateToken.instance!;
     await loadModelAndLabels();
-    Isolate isolate = await Isolate.spawn(BackgroundIsolate.start,
+    backgroundIsolate = await Isolate.spawn(BackgroundIsolate.start,
         [receivePort.sendPort, rootIsolateToken, interpreter.address, labels]);
     receivePort.listen((message) {
       handleCommand(message);
@@ -68,6 +69,10 @@ class RootIsolate {
     if (isReady) {
       sendPort.send(Command(Codes.detect, [cameraImage]));
     }
+  }
+
+  static stopBackgroudIsolate() {
+    backgroundIsolate.kill();
   }
 }
 
