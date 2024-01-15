@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:realtime_object_detection/models/recognition.dart';
 import 'package:realtime_object_detection/utils/image_utils.dart';
+import 'package:realtime_object_detection/utils/image_utils2.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'package:image/image.dart' as image_lib;
 
@@ -56,7 +57,7 @@ class RootIsolate {
         isReady = false;
       case Codes.result:
         isReady = true;
-        resultStream.add(command.args!);
+        resultStream.add(command.args![0]);
 
       default:
         debugPrint('Unrecognized code for RootIsolate: ${command.code}');
@@ -106,7 +107,7 @@ class BackgroundIsolate {
   }
 
   static void getResult(CameraImage cameraImage) {
-    convertCameraImageToImage(cameraImage).then((image) {
+    ImageUtils.convertCameraImage(cameraImage).then((image) {
       if (image != null) {
         if (Platform.isAndroid) {
           // 일단 알아야 할 정보는 ios 든 android든 controller.previewSize는 모두 landscape
@@ -115,7 +116,7 @@ class BackgroundIsolate {
         }
 
         final results = analyseImage(image);
-        sendPort.send(Command(Codes.result, [results, image]));
+        sendPort.send(Command(Codes.result, [results]));
       }
     });
   }
