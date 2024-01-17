@@ -137,6 +137,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.6"
+  dart_tensor:
+    dependency: "direct main"
+    description:
+      name: dart_tensor
+      sha256: "77042f33ab058aebab4d5370dd74643495b976ad43cbab13c90e1b81d3d2c986"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4"
   exif:
     dependency: "direct main"
     description:
