@@ -44,6 +44,7 @@ dependencies:
   loading_indicator: ^3.1.1
   circular_buffer: ^0.11.0
   dart_tensor: ^1.0.4
+  image_picker: ^1.0.7
 
 
 dev_dependencies:

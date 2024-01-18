@@ -22,9 +22,12 @@ class _HomeViewState extends State<HomeView> {
   late List<CameraDescription> _cameras;
   CameraController? controller;
   CameraImage? currentCameraImage;
-  CircularBuffer<imglib.Image> images =
-      CircularBuffer<imglib.Image>(bufferSize);
+  CircularBuffer<List<List<List<double>>>> images =
+      CircularBuffer<List<List<List<double>>>>(bufferSize);
   late Timer _timer;
+
+  static double? actionProbs;
+  static String? action;
 
   Future<void> _initCamera() async {
     _cameras = await availableCameras();
@@ -68,7 +71,17 @@ class _HomeViewState extends State<HomeView> {
               colors: [Colors.purple[900]!],
               strokeWidth: 3,
             )
-          : CameraPreview(controller!),
+          : Column(
+              children: [
+                CameraPreview(controller!),
+                Center(
+                  child: Text(
+                    '$action: $actionProbs',
+                    style: const TextStyle(color: Colors.black, fontSize: 30),
+                  ),
+                )
+              ],
+            ),
     );
   }
 
@@ -76,7 +89,7 @@ class _HomeViewState extends State<HomeView> {
     currentCameraImage = cameraImage;
   }
 
-  void processFrame(CameraImage? currentCameraImage) {
+  void processFrame(CameraImage? currentCameraImage) async {
     if (currentCameraImage != null) {
       ImageUtils.convertCameraImage(currentCameraImage).then((image) {
         if (Platform.isAndroid) {
@@ -88,10 +101,28 @@ class _HomeViewState extends State<HomeView> {
         imglib.Image resizedImage = imglib.copyResize(image!,
             width: mlModelInputSize, height: mlModelInputSize);
 
-        images.add(resizedImage);
+        // Creating normalized matrix representation, [172, 172, 3]
+        final imageMatrix = List.generate(
+          resizedImage.height,
+          (y) => List.generate(
+            resizedImage.width,
+            (x) {
+              final pixel = resizedImage.getPixel(x, y);
+              return [pixel.r / 255.0, pixel.g / 255.0, pixel.b / 255.0];
+            },
+          ),
+        );
+
+        images.add(imageMatrix);
       });
       if (VideoClassification.isReady & (images.length == bufferSize)) {
-        VideoClassification.runModel(images);
+        await VideoClassification.runModel(images).then((value) {
+          VideoClassification.isReady = true;
+          actionProbs = value.$1;
+          action = value.$2;
+          setState(() {});
+        });
+        //VideoClassification.runModelTemp();
       }
     }
   }
